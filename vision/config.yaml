@@ -1,6 +1,6 @@
 vision:
   enabled: true
-  mode: overlay_only
+  mode: overlay_only  # overlay_only | metric | both
 
   frame_source:
     type: java_frame_tap
@@ -28,3 +28,25 @@ vision:
   server:
     host: "127.0.0.1"
     port: 8765
+
+  calibration:
+    directory: "../config/calibration"
+    coordinate_frame: rear_axle
+    ground_plane_z_m: 0.0
+
+  distance:
+    method: ground_plane_projection
+    definition: euclidean_ground_plane
+    min_valid_distance_m: 0.05
+    max_valid_distance_m: 5.0
+
+  validation:
+    min_detection_confidence: 0.60
+    reject_invalid_projection: true
+    max_detection_age_ms: 500
+
+  ingest:
+    enabled: true
+    publish_hz: 10
+    sensor_id_prefix: "VISION_"
+    min_pano_strip_px: 40

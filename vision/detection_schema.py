@@ -36,11 +36,14 @@ class Detection:
         if self.image_width and self.image_height:
             d["imageWidth"] = self.image_width
             d["imageHeight"] = self.image_height
-        if self.distance_m is not None:
-            d["distanceM"] = round(self.distance_m, 3)
-        d["distanceValid"] = self.distance_valid
-        if self.distance_uncertainty_m is not None:
-            d["distanceUncertaintyM"] = round(self.distance_uncertainty_m, 3)
+        if self.distance_valid:
+            d["distanceValid"] = True
+            if self.distance_m is not None:
+                d["distanceM"] = round(self.distance_m, 3)
+            if self.distance_uncertainty_m is not None:
+                d["distanceUncertaintyM"] = round(self.distance_uncertainty_m, 3)
+        else:
+            d["distanceValid"] = False
         if self.bbox:
             d["bbox"] = self.bbox
         return d

@@ -46,3 +46,15 @@ def contour_camera_to_panorama(
         if p:
             out.append([p[0], p[1]])
     return out
+
+
+def panorama_contour_strip(
+    pano_contour: List[List[int]], min_width_px: int = 40
+) -> Optional[Tuple[int, int]]:
+    """Return (panoX, panoW) for curb zone ingest from panorama contour."""
+    if len(pano_contour) < 2:
+        return None
+    xs = [p[0] for p in pano_contour]
+    x0, x1 = min(xs), max(xs)
+    w = max(min_width_px, x1 - x0)
+    return x0, w

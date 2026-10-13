@@ -1,0 +1,7 @@
+frame: rear_axle
+axes:
+  forward: +x
+  left: +y
+  up: +z
+ground_plane_z_m: 0.0
+distance_reference: euclidean_ground_plane_from_rear_axle
