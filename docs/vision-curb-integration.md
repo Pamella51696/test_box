@@ -103,3 +103,14 @@ That text is **ultrasonic / fake-vehicle SSE**, not vision.
 See **`docs/PR1_CALIBRATION_AUDIT.md`** (gate) and **`docs/PR2_VISION_METRIC_PLAN.md`** (tasks, contracts, acceptance).
 
 Calibration files: **`config/calibration/README.md`**.
+
+### Synthetic-dev end-to-end (pipeline test)
+
+```bash
+./tools/run-pr2-metric-dev.sh 9091          # vision + middleware + /stitch consumer
+python3 tools/verify_vision_metric_e2e.py --port 9091 --seconds 20
+```
+
+Uses `config/calibration/synthetic-dev/` with `VISION_ALLOW_SYNTHETIC=1` and `mode=both`. **Not** for real-world distance claims.
+
+**Important:** `VisionFrameTap` only runs while a client holds **`/stitch`** open (viewer or `tools/stitch-consumer.sh`). Without that, the sidecar receives no frames.

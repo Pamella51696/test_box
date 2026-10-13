@@ -17,7 +17,7 @@ vision:
 
   inference:
     target_hz: 8
-    max_frame_age_ms: 500
+    max_frame_age_ms: 2000
     confidence_threshold: 0.001
 
   output:

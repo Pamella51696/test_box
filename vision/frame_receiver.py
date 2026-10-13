@@ -42,3 +42,8 @@ class FrameStore:
                 for k, v in self._latest.items()
                 if now - v.received_monotonic_ns <= limit
             }
+
+    def snapshot_latest(self) -> Dict[str, FramePacket]:
+        """Latest frame per camera regardless of age (for inference when NN is slower than frame TTL)."""
+        with self._lock:
+            return dict(self._latest)

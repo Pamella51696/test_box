@@ -41,6 +41,17 @@ CAMERA_TO_POS = {
 ROOT = Path(__file__).resolve().parent
 
 
+def normalize_jpeg(body: bytes) -> bytes:
+    """Java VisionFramePublisher may prefix image part with stray CRLF before SOI."""
+    start = body.find(b"\xff\xd8")
+    if start < 0:
+        return body
+    end = body.rfind(b"\xff\xd9")
+    if end >= start:
+        return body[start : end + 2]
+    return body[start:]
+
+
 def load_config() -> Dict[str, Any]:
     path = os.environ.get("VISION_CONFIG", str(ROOT / "config.yaml"))
     with open(path, encoding="utf-8") as f:
@@ -150,11 +161,17 @@ def inference_loop() -> None:
             m = meta
         if not m:
             continue
-        batch = frames.snapshot_fresh()
+        batch = frames.snapshot_latest()
+        if not batch:
+            continue
+        now_ms = time.time() * 1000.0
+        max_age = int(VAL_CFG.get("max_detection_age_ms", MAX_AGE_MS))
         all_det: List[Detection] = []
         ingest_sensors: List[Dict[str, Any]] = []
         max_fid = 0
         for cam, pkt in batch.items():
+            if now_ms - pkt.timestamp_ms > max_age and pkt.timestamp_ms > 0:
+                continue
             arr = np.frombuffer(pkt.jpeg, dtype=np.uint8)
             bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
             if bgr is None:
@@ -246,18 +263,21 @@ async def frame(
     height: int = Form(360),
     image: UploadFile = File(...),
 ) -> dict:
-    body = await image.read()
-    frames.put(camera.strip().lower(), frameId, timestampMs, width, height, body)
+    body = normalize_jpeg(await image.read())
+    cam = camera.strip().lower()
+    frames.put(cam, frameId, timestampMs, width, height, body)
     return {"ok": True, "camera": camera, "frameId": frameId}
 
 
 @app.get("/health")
 def health() -> dict:
+    snap = frames.snapshot_fresh()
     return {
         "ok": True,
         "middleware": MIDDLEWARE,
         "mode": MODE,
         "model": runner is not None,
+        "freshFrames": {k: v.frame_id for k, v in snap.items()},
         "calibrationProfile": CAL_PROFILE,
         "allowSynthetic": ALLOW_SYNTHETIC,
         "calibration": {
