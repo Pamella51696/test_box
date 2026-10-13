@@ -24,5 +24,9 @@ Header pill **overlay:** shows `DETECTED`, `NO CURB`, `STALE`, `INFERENCE ERROR`
 ## Tests
 
 ```bash
-cd vision && python -m pytest tests/ -q
+cd vision && python3 -m pytest tests/ -q
 ```
+
+## Next: PR5 calibration and accuracy validation
+
+See **`docs/PR5_CALIBRATION_VALIDATION.md`** and `config/calibration/validation/` for ground-truth datasets and `tools/validate_curb_accuracy.py`.
