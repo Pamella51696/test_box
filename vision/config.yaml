@@ -30,7 +30,9 @@ vision:
     port: 8765
 
   calibration:
+    profile: default  # default | synthetic-dev
     directory: "../config/calibration"
+    allow_synthetic: false  # must be true (or VISION_ALLOW_SYNTHETIC=1) to publish metric from synthetic-dev
     coordinate_frame: rear_axle
     ground_plane_z_m: 0.0
 

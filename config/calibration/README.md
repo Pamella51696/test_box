@@ -54,3 +54,15 @@ Set `valid: true` only after verification.
 - `half = rad(90/2)`, `f = (640/2) / tan(half)` → fx ≈ fy ≈ **320** (for 90° horizontal on 640 width).
 
 Replace with measured values before acceptance tests.
+
+## Synthetic dev profile (pipeline testing only)
+
+Measured placeholders in this directory stay `valid: false`.
+
+For end-to-end **simulated** metres (contour → ingest → curb SSE), use:
+
+```
+config/calibration/synthetic-dev/
+```
+
+See `config/calibration/synthetic-dev/README.md`. Enable with `vision.calibration.profile: synthetic-dev` and `allow_synthetic: true`. Production / field use must keep `allow_synthetic: false` so synthetic YAML cannot publish distances.

@@ -36,7 +36,9 @@ def ray_ground_intersection(
 ) -> DistanceResult:
     """
     Vehicle frame: +x forward, +y left, +z up (WP5). Ground plane z = ground_z_m.
-    Distance = Euclidean range in ground plane from rear-axle origin to intersection.
+    Distance = hypot(x, y) of the ground intersection in the active calibration frame
+    (rear_axle for measured YAML; vehicle_center for synthetic-dev).
+    Uses rectified camera pixels (640×360 from Java), not raw fisheye or panorama.
     """
     if not cal.valid:
         return DistanceResult(0.0, np.zeros(3), False, "calibration_not_valid")

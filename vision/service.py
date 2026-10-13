@@ -22,7 +22,7 @@ import uvicorn
 import yaml
 from fastapi import FastAPI, File, Form, UploadFile
 
-from calibration_loader import load_all
+from calibration_loader import load_all, resolve_calibration_directory
 from coordinate_mapper import contour_camera_to_panorama, fetch_meta, panorama_contour_strip
 from curb_distance_estimator import DistanceResult, estimate_from_contour
 from detection_schema import Detection, envelope
@@ -59,9 +59,13 @@ PANO_W = int(CFG["output"]["width"])
 PANO_H = int(CFG["output"]["height"])
 
 CAL_CFG = CFG.get("calibration", {})
-CAL_DIR = (ROOT / CAL_CFG.get("directory", "../config/calibration")).resolve()
+CAL_PROFILE = os.environ.get("VISION_CALIBRATION_PROFILE", CAL_CFG.get("profile", "default"))
+ALLOW_SYNTHETIC = os.environ.get("VISION_ALLOW_SYNTHETIC", "").strip() in ("1", "true", "yes")
+if not ALLOW_SYNTHETIC:
+    ALLOW_SYNTHETIC = bool(CAL_CFG.get("allow_synthetic", False))
+CAL_DIR, CAL_PROFILE = resolve_calibration_directory(ROOT, CAL_CFG, CAL_PROFILE)
 GROUND_Z = float(CAL_CFG.get("ground_plane_z_m", 0.0))
-CALIBRATIONS = load_all(CAL_DIR)
+CALIBRATIONS = load_all(CAL_DIR, allow_synthetic=ALLOW_SYNTHETIC)
 
 DIST_CFG = CFG.get("distance", {})
 MIN_DIST_M = float(DIST_CFG.get("min_valid_distance_m", 0.05))
@@ -224,10 +228,12 @@ def startup() -> None:
 
     threading.Thread(target=meta_loop, daemon=True).start()
     cal_valid = [k for k, c in CALIBRATIONS.items() if c.valid]
+    synth = [k for k, c in CALIBRATIONS.items() if c.calibration_type == "synthetic"]
     print(
         f"[vision] mode={MODE}  {HOST}:{PORT}  →  {MIDDLEWARE}  "
         f"overlay={DO_OVERLAY} metric={DO_METRIC} ingest={INGEST_ENABLED} "
-        f"calib_valid={cal_valid or 'none'}"
+        f"cal_profile={CAL_PROFILE} allow_synthetic={ALLOW_SYNTHETIC} "
+        f"calib_valid={cal_valid or 'none'} synthetic_files={synth or 'none'}"
     )
 
 
@@ -252,7 +258,16 @@ def health() -> dict:
         "middleware": MIDDLEWARE,
         "mode": MODE,
         "model": runner is not None,
-        "calibration": {k: c.valid for k, c in CALIBRATIONS.items()},
+        "calibrationProfile": CAL_PROFILE,
+        "allowSynthetic": ALLOW_SYNTHETIC,
+        "calibration": {
+            k: {
+                "valid": c.valid,
+                "type": c.calibration_type,
+                "frame": c.coordinate_frame,
+            }
+            for k, c in CALIBRATIONS.items()
+        },
     }
 
 
