@@ -50,3 +50,16 @@ python3 tools/validate_curb_accuracy.py \
 |------|---------|
 | `ground_truth.example.jsonl` | Schema reference (not for pass/fail) |
 | `ground_truth.synthetic_selftest.jsonl` | CI self-test with `synthetic-dev` + `--allow-synthetic` |
+| `ground_truth.artificial-measured.jsonl` | **Artificial** OEM-style profile + projected curb points (regenerate with `tools/generate_artificial_ground_truth.py`) |
+| `thresholds.artificial-measured.json` | CI MAE/pass-rate limits for the artificial dataset only |
+
+### No real survey data?
+
+Use the **`artificial-measured`** profile (`config/calibration/artificial-measured/README.md`):
+
+```bash
+python3 tools/generate_artificial_ground_truth.py
+tools/run-artificial-calibration-ci.sh
+```
+
+Keep `metric.mode: development` and `calibration.status: SYNTHETIC` — do **not** switch to `calibrated` until you have real measured YAML and field JSONL.
