@@ -23,7 +23,7 @@ class Detection:
     def to_dict(self) -> Dict[str, Any]:
         d: Dict[str, Any] = {
             "class": "CURB",
-            "confidence": round(self.confidence, 4),
+            "confidence": round(min(1.0, max(0.0, self.confidence)), 4),
             "camera": self.camera,
             "coordinateSpace": self.coordinate_space,
         }

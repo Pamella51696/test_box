@@ -14,6 +14,12 @@ vision:
     onnx_path: "models/curb_segmentation.onnx"
     input_width: 896
     input_height: 512
+    # Per-camera curb mask tuning (pink overlay); see vision/postprocess.py
+    camera_profiles:
+      front: { min_pixels: 25, bottom_roi: 0.38, min_confidence: 0.15 }
+      rear:  { min_pixels: 12, bottom_roi: 0.52, min_confidence: 0.10, side_band: 0.55 }
+      left:  { min_pixels: 12, bottom_roi: 0.42, min_confidence: 0.10, side: left,  side_band: 0.45 }
+      right: { min_pixels: 12, bottom_roi: 0.42, min_confidence: 0.10, side: right, side_band: 0.45 }
 
   inference:
     target_hz: 8

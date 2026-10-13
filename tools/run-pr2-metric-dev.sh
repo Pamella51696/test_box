@@ -26,7 +26,8 @@ tmux -f /exec-daemon/tmux.portal.conf new-window -t "$SESSION" -c "$ROOT" -- "${
 tmux -f /exec-daemon/tmux.portal.conf send-keys -t "$SESSION:1.0" "exec java --enable-native-access=ALL-UNNAMED \
   -Dwp5.vision.url=http://127.0.0.1:8765/frame \
   -Dwp5.vision.maxFps=8 \
-  -Dwp5.vision.cameras=left,right,rear,front \
+  -Dwp5.vision.cameras=left,front,right,rear \
+  -Dpanels=3:left,1:front,4:right,2:rear \
   -Dvideo.dir=${VIDEO_DIR} \
   -cp target/classes:${OPENCV_JAR} \
   com.middleware.panorama.VideoStreamingServer ${PORT}" C-m

@@ -176,7 +176,7 @@ def inference_loop() -> None:
             bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
             if bgr is None:
                 continue
-            det = runner.infer(bgr)
+            det = runner.infer(bgr, cam)
             if not det.found or det.confidence < CONF_TH:
                 continue
             max_fid = max(max_fid, pkt.frame_id)

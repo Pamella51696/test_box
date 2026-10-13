@@ -61,6 +61,10 @@ python vision/service.py
 
 Open `http://localhost:9091/wp5/viewer` and open `/stitch` (panorama img loads automatically).
 
+Default panorama strip order (left → right): **left | front | right | rear** (`-Dpanels=3:left,1:front,4:right,2:rear`).
+
+Pink **CURB xx%** labels use softmax curb probability (0–100%). Per-camera tuning is in `vision/config.yaml` → `model.camera_profiles`.
+
 Check:
 
 - Header pill **vision: N det** (N > 0 when curbs visible in side/rear cameras)

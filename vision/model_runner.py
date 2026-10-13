@@ -18,6 +18,7 @@ class ModelRunner:
         self.backend = os.environ.get("VISION_BACKEND", cfg.get("backend", "openvino")).lower()
         self.input_w = int(cfg.get("input_width", 896))
         self.input_h = int(cfg.get("input_height", 512))
+        self.camera_profiles = cfg.get("camera_profiles") or {}
         self._ov = None
         self._onnx = None
         if self.backend == "onnx":
@@ -50,7 +51,7 @@ class ModelRunner:
         _, _, h, w = self._onnx.get_inputs()[0].shape
         self.input_h, self.input_w = int(h), int(w)
 
-    def infer(self, bgr: np.ndarray) -> CameraDetection:
+    def infer(self, bgr: np.ndarray, camera: str = "front") -> CameraDetection:
         oh, ow = bgr.shape[:2]
         resized = cv2.resize(bgr, (self.input_w, self.input_h))
         blob = resized.transpose(2, 0, 1)[np.newaxis, ...].astype(np.float32)
@@ -59,4 +60,4 @@ class ModelRunner:
         else:
             name = self._onnx.get_inputs()[0].name
             out = self._onnx.run(None, {name: blob})[0]
-        return adas_logits_to_detection(out, ow, oh)
+        return adas_logits_to_detection(out, ow, oh, camera=camera, camera_profiles=self.camera_profiles)

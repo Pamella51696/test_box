@@ -38,11 +38,10 @@ public class VideoStreamingServer {
      * Format "<video number>:<role>", roles = front | rear | left | right (WP5 needs exactly these
      * names to place the curb zones). Override: -Dpanels="1:front,4:right,2:rear,3:left"
      *
-     * Default = ring order around the car, so neighbouring panels really touch each other
-     * (front|right|rear|left, and left wraps to front). Identified from the clips:
-     *   1.mp4 front, 4.mp4 right, 2.mp4 rear (bumper + number plate visible), 3.mp4 left.
+     * Default panorama strip (left → right): left | front | right | rear.
+     * Video files (artificial-feed): 3.mp4 left, 1.mp4 front, 4.mp4 right, 2.mp4 rear.
      */
-    private static final String DEFAULT_PANELS = "1:front,4:right,2:rear,3:left";
+    private static final String DEFAULT_PANELS = "3:left,1:front,4:right,2:rear";
     private static final java.util.Set<String> ROLES =
             new java.util.HashSet<>(java.util.Arrays.asList("front", "rear", "left", "right"));
 

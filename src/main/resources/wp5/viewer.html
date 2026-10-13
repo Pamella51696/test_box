@@ -158,15 +158,18 @@ function drawCurb(){
     octx.shadowBlur=0;octx.textAlign="start";});
   if(vision&&vision.detections&&meta&&meta.panorama){
     const pw=meta.panorama.width,ph=meta.panorama.height;
+    function curbConfPct(c){const v=Number(c)||0;return v<=1?Math.round(v*100):Math.min(100,Math.round(v));}
     vision.detections.forEach(det=>{
       const pts=det.contour||[];if(pts.length<2)return;
+      const pct=curbConfPct(det.confidence);
+      if(pct<8)return;
       octx.save();octx.strokeStyle="#E040FB";octx.lineWidth=3;octx.lineJoin="round";
       octx.beginPath();
       pts.forEach((p,i)=>{const x=p[0]/pw*W,y=p[1]/ph*H;i?octx.lineTo(x,y):octx.moveTo(x,y);});
       octx.stroke();
       octx.fillStyle="#E040FB";octx.font="bold 11px sans-serif";octx.shadowColor="#000";octx.shadowBlur=3;
       const lx=pts[0][0]/pw*W,ly=pts[0][1]/ph*H;
-      octx.fillText("CURB "+Math.round((det.confidence||0)*100)+"% ("+(det.camera||"?")+")",lx+4,Math.max(14,ly-6));
+      octx.fillText("CURB "+pct+"% ("+(det.camera||"?")+")",lx+4,Math.max(14,ly-6));
       octx.restore();
     });
   }
