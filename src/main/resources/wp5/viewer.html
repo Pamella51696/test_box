@@ -26,7 +26,7 @@ pre{margin:6px 0 0;background:#0f131b;border:1px solid var(--line);border-radius
 </style></head><body>
 <header><h1>WP5 viewer <span style="color:var(--mut);font-weight:400">(acts like the Android app)</span></h1>
 <span class="pill" id="pConn">SSE: connecting</span><span class="pill" id="pSteer">steering: -</span>
-<span class="pill" id="pCurb">curb: -</span><span class="pill" id="pVision">vision: -</span><span class="pill" id="pValid">valid: -</span>
+<span class="pill" id="pCurb">curb: -</span><span class="pill" id="pVision">vision: -</span><span class="pill" id="pVisionState">overlay: -</span><span class="pill" id="pValid">valid: -</span>
 <span class="pill" id="pProfile">profile: -</span></header>
 <main>
 <section>
@@ -111,15 +111,25 @@ function connect(){
     drawCurb();});
 }
 connect();
+function visionOverlayLabel(d){
+  if(!d)return {text:"overlay: -",cls:""};
+  const st=(d.overlayStatus||"NO_CURB").toUpperCase();
+  let text=st.replace(/_/g," ");
+  const n=(d.detections&&d.detections.length)||0;
+  if(st==="DETECTED"&&n>0&&!d.detections.some(x=>x.distanceValid))text="DISTANCE UNAVAILABLE";
+  const ok=st==="DETECTED",bad=st==="INFERENCE_ERROR"||st==="STALE";
+  return {text:"overlay: "+text,cls:ok?"ok":bad?"bad":""};
+}
 function pollVision(){
   fetch("/api/v1/vision/detections").then(r=>r.status===204?null:r.json()).then(d=>{
     if(!d)return;
     vision=d;
     const n=(d.detections&&d.detections.length)||0;
     $("pVision").textContent="vision: "+n+" det";$("pVision").className="pill "+(n?"ok":"");
+    const vs=visionOverlayLabel(d);$("pVisionState").textContent=vs.text;$("pVisionState").className="pill "+vs.cls;
     $("rawVision").textContent=JSON.stringify(d,null,2).slice(0,1200);
     drawCurb();
-  }).catch(()=>{$("pVision").textContent="vision: off";});
+  }).catch(()=>{$("pVision").textContent="vision: off";$("pVisionState").textContent="overlay: off";});
 }
 setInterval(pollVision,250);pollVision();
 setInterval(()=>{ // rates + staleness

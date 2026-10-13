@@ -19,6 +19,10 @@ class Detection:
     distance_m: float | None = None
     distance_valid: bool = False
     distance_uncertainty_m: float | None = None
+    detection_valid: bool = False
+    overlay_status: str = "NO_CURB"  # DETECTED | NO_CURB | STALE | INFERENCE_ERROR
+    calibration_status: str = "UNVERIFIED"  # VALID | UNVERIFIED | MISSING | SYNTHETIC
+    timestamp_ms: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
         d: Dict[str, Any] = {
@@ -26,6 +30,8 @@ class Detection:
             "confidence": round(min(1.0, max(0.0, self.confidence)), 4),
             "camera": self.camera,
             "coordinateSpace": self.coordinate_space,
+            "detectionValid": bool(self.detection_valid),
+            "overlayStatus": self.overlay_status,
         }
         if self.pos:
             d["pos"] = self.pos
@@ -36,6 +42,9 @@ class Detection:
         if self.image_width and self.image_height:
             d["imageWidth"] = self.image_width
             d["imageHeight"] = self.image_height
+        d["calibrationStatus"] = self.calibration_status
+        if self.timestamp_ms:
+            d["timestamp"] = self.timestamp_ms
         if self.distance_valid:
             d["distanceValid"] = True
             if self.distance_m is not None:
@@ -55,12 +64,19 @@ def envelope(
     frame_width: int,
     frame_height: int,
     detections: List[Detection],
+    coordinate_space: str = "PANORAMA_PIXELS",
+    overlay_status: str = "NO_CURB",
+    camera_statuses: Dict[str, str] | None = None,
 ) -> Dict[str, Any]:
-    return {
+    body: Dict[str, Any] = {
         "frameId": frame_id,
         "timestampMonotonicNs": timestamp_ns,
         "frameWidth": frame_width,
         "frameHeight": frame_height,
-        "coordinateSpace": "PANORAMA_PIXELS",
+        "coordinateSpace": coordinate_space,
+        "overlayStatus": overlay_status,
         "detections": [d.to_dict() for d in detections],
     }
+    if camera_statuses:
+        body["cameraOverlayStatus"] = camera_statuses
+    return body

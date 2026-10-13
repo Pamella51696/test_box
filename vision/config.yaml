@@ -21,10 +21,29 @@ vision:
       left:  { min_pixels: 12, bottom_roi: 0.42, min_confidence: 0.10, side: left,  side_band: 0.45 }
       right: { min_pixels: 12, bottom_roi: 0.42, min_confidence: 0.10, side: right, side_band: 0.45 }
 
+  input:
+    coordinate_space: auto
+    allow_single_camera: true
+    allow_panorama: true
+
+  detection:
+    confidence_threshold: 0.12  # raise toward 0.35 after tuning on representative footage
+    min_contour_area: 20
+    simplify_epsilon: 2.0
+    max_point_jump_px: 80.0
+    max_inference_fps: 15
+
+  temporal:
+    enabled: true
+    smoothing_alpha: 0.4
+    stable_frames_required: 2
+    stale_timeout_ms: 500
+    hold_on_miss_frames: 1
+
   inference:
-    target_hz: 8
+    target_hz: 12
     max_frame_age_ms: 2000
-    confidence_threshold: 0.001
+    confidence_threshold: 0.12  # legacy fallback; prefer detection.confidence_threshold
 
   output:
     coordinate_space: PANORAMA_PIXELS
@@ -47,6 +66,8 @@ vision:
     definition: euclidean_ground_plane
     min_valid_distance_m: 0.05
     max_valid_distance_m: 5.0
+    require_valid_calibration: true
+    allow_synthetic_calibration: false
 
   validation:
     min_detection_confidence: 0.60
