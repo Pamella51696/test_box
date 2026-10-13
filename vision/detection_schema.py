@@ -11,7 +11,14 @@ class Detection:
     confidence: float
     coordinate_space: str  # CAMERA_PIXELS | PANORAMA_PIXELS
     contour: List[List[int]] = field(default_factory=list)
+    contour_camera_pixels: List[List[int]] = field(default_factory=list)
+    image_width: int = 0
+    image_height: int = 0
+    pos: str = ""  # logical sensor e.g. LEFT_REAR (PR2 ingest)
     bbox: List[int] = field(default_factory=list)  # x0,y0,x1,y1 optional
+    distance_m: float | None = None
+    distance_valid: bool = False
+    distance_uncertainty_m: float | None = None
 
     def to_dict(self) -> Dict[str, Any]:
         d: Dict[str, Any] = {
@@ -20,8 +27,20 @@ class Detection:
             "camera": self.camera,
             "coordinateSpace": self.coordinate_space,
         }
+        if self.pos:
+            d["pos"] = self.pos
         if self.contour:
             d["contour"] = self.contour
+        if self.contour_camera_pixels:
+            d["contourCameraPixels"] = self.contour_camera_pixels
+        if self.image_width and self.image_height:
+            d["imageWidth"] = self.image_width
+            d["imageHeight"] = self.image_height
+        if self.distance_m is not None:
+            d["distanceM"] = round(self.distance_m, 3)
+        d["distanceValid"] = self.distance_valid
+        if self.distance_uncertainty_m is not None:
+            d["distanceUncertaintyM"] = round(self.distance_uncertainty_m, 3)
         if self.bbox:
             d["bbox"] = self.bbox
         return d

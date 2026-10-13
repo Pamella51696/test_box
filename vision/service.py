@@ -23,6 +23,14 @@ import yaml
 from fastapi import FastAPI, File, Form, UploadFile
 
 from coordinate_mapper import contour_camera_to_panorama, fetch_meta
+
+# camera role → default logical curb sensor for PR2 ingest (one zone per side camera in PR1)
+CAMERA_TO_POS = {
+    "left": "LEFT_REAR",
+    "right": "RIGHT_REAR",
+    "rear": "REAR_CENTER",
+    "front": "FRONT_CENTER",
+}
 from detection_schema import Detection, envelope
 from frame_receiver import FrameStore
 from model_runner import ModelRunner
@@ -98,6 +106,7 @@ def inference_loop() -> None:
             if not det.found or det.confidence < CONF_TH:
                 continue
             max_fid = max(max_fid, pkt.frame_id)
+            cam_contour = [[int(x), int(y)] for x, y in det.contour]
             pano_contour = contour_camera_to_panorama(m, cam, det.contour)
             if len(pano_contour) < 2:
                 continue
@@ -107,6 +116,10 @@ def inference_loop() -> None:
                     confidence=det.confidence,
                     coordinate_space="PANORAMA_PIXELS",
                     contour=pano_contour,
+                    contour_camera_pixels=cam_contour,
+                    image_width=pkt.width,
+                    image_height=pkt.height,
+                    pos=CAMERA_TO_POS.get(cam, ""),
                     bbox=[],
                 )
             )
