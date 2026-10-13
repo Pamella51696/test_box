@@ -46,4 +46,10 @@ final class Json {
         Matcher m = Pattern.compile("\"" + Pattern.quote(key) + "\"\\s*:\\s*\"([^\"]*)\"").matcher(json);
         return m.find() ? m.group(1) : def;
     }
+
+    /** Reads a boolean field; returns def when missing. */
+    static boolean getBool(String json, String key, boolean def) {
+        Matcher m = Pattern.compile("\"" + Pattern.quote(key) + "\"\\s*:\\s*(true|false)").matcher(json);
+        return m.find() ? Boolean.parseBoolean(m.group(1)) : def;
+    }
 }

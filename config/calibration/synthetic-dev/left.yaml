@@ -1,0 +1,17 @@
+camera_name: left
+calibration_type: synthetic
+coordinate_frame: vehicle_center
+valid: true
+
+image:
+  width: 640
+  height: 360
+  fx: 320.0
+  fy: 320.0
+  cx: 320.0
+  cy: 180.0
+
+extrinsics:
+  rotation_model: vehicle_mount_yaw
+  t_m: [0.0, 0.95, 0.8]
+  r_ypr_deg: [90.0, 0.0, 0.0]

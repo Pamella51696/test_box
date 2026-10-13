@@ -65,6 +65,10 @@ public final class Wp5Service {
         server.createContext("/wp5", s.new DebugPageHandler());
         server.createContext("/wp5/viewer", s.new ViewerPageHandler());
         System.out.println("[WP5] profile: " + cfg.profile.name + "  (from " + cfg.profileSource + ")");
+        FusionConfig fusion = FusionConfig.load();
+        if (fusion.enabled) {
+            System.out.println("[WP5] curb fusion ON  mode=" + fusion.mode + "  conflictThresholdM=" + fusion.conflictThresholdM);
+        }
         s.ticker.scheduleAtFixedRate(s::tick, 100, 100, TimeUnit.MILLISECONDS);
         if (Boolean.getBoolean("wp5.simulate")) {
             new Wp5Simulator(s).start();

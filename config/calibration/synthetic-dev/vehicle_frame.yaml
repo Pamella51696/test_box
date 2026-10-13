@@ -1,0 +1,17 @@
+# Synthetic dev profile — NOT for real-world distance claims.
+frame: vehicle_center
+axes:
+  forward: +x
+  left: +y
+  up: +z
+ground_plane_z_m: 0.0
+distance_reference: euclidean_ground_plane_from_frame_origin
+assumptions:
+  vehicle_length_m: 4.5
+  vehicle_width_m: 2.4
+  camera_height_m: 0.8
+calibration_type: synthetic
+notes: >
+  Mounting positions are engineering assumptions for pipeline testing only.
+  AI-generated video does not validate these extrinsics. Use measured
+  config/calibration/*.yaml for field sign-off.
