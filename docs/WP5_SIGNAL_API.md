@@ -79,6 +79,7 @@ POST /api/v1/ingest/steering   {"steeringWheelDeg": -135.0, "gear": "R", "speedK
 POST /api/v1/ingest/range      {"sensors":[{"id":"RC","pos":"REAR_CENTER","distanceM":0.42,
                                             "kind":"OBSTACLE","source":"ULTRASONIC","heightM":0.2}]}
 ```
+Vision sidecar (optional): add `"source":"VISION"` and `"panoX":1700,"panoW":120` to place the zone from NN bbox instead of the fixed sensor strip. See `docs/VISION_INTEGRATION.md`.
 `pos` is one of `FRONT_LEFT FRONT_CENTER FRONT_RIGHT REAR_LEFT REAR_CENTER REAR_RIGHT LEFT_FRONT LEFT_REAR RIGHT_FRONT RIGHT_REAR`.
 `kind` is `CURB`, `OBSTACLE` or `UNKNOWN`. `distanceM < 0` means "no echo / clear". Send each sensor at least every 500 ms or it turns grey.
 

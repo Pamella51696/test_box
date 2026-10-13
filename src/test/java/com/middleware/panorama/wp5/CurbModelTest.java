@@ -113,4 +113,14 @@ class CurbModelTest {
         assertEquals(Zone.SAFE, Zone.worst(Zone.NONE, Zone.SAFE));
         assertEquals(Zone.DANGER, Zone.worst(Zone.WARNING, Zone.DANGER));
     }
+
+    @Test
+    void ingest_visionPanoOverride_replacesFixedSensorStrip() {
+        CurbModel m = model();
+        m.ingestJson("{\"sensors\":[{\"id\":\"V\",\"pos\":\"LEFT_REAR\",\"distanceM\":1.5,\"kind\":\"CURB\","
+            + "\"source\":\"VISION\",\"panoX\":1700,\"panoW\":140}]}", 1000);
+        String j = m.snapshot(1, 1000).json;
+        assertTrue(j.contains("\"pano\":{\"x\":1700,\"w\":140"), j);
+        assertTrue(j.contains("\"source\":\"VISION\""), j);
+    }
 }
