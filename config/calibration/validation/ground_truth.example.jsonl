@@ -1,0 +1,2 @@
+# Copy to my_dataset.jsonl and replace with measured samples. Lines starting with # are ignored.
+{"id":"example-left-curb","camera":"left","contour_camera_pixels":[[100,300],[180,290],[260,285]],"distance_m":0.85,"tolerance_m":0.15,"notes":"REPLACE: measured distance at curb lip"}

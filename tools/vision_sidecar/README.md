@@ -1,6 +1,8 @@
-# WP5 vision curb sidecar
+# Legacy path (superseded)
 
-Receives JPEG frames from Java (`-Dwp5.vision.url=…`), runs segmentation, posts overlay positions to middleware.
+**Use `vision/service.py` for PR-1 overlay** — see `docs/vision-curb-integration.md`.
+
+This folder remains for reference; the active sidecar is at repo root `vision/`.
 
 **Model choice:** `docs/VISION_CURB_MODELS.md`  
 **Wiring:** `docs/VISION_INTEGRATION.md`

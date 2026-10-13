@@ -16,7 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 
-import com.middleware.panorama.vision.VisionFramePublisher;
+import com.middleware.panorama.vision.VisionFrameTap;
+import com.middleware.panorama.vision.VisionService;
 import com.middleware.panorama.wp5.Wp5Service;
 
 import org.opencv.calib3d.Calib3d;
@@ -37,11 +38,10 @@ public class VideoStreamingServer {
      * Format "<video number>:<role>", roles = front | rear | left | right (WP5 needs exactly these
      * names to place the curb zones). Override: -Dpanels="1:front,4:right,2:rear,3:left"
      *
-     * Default = ring order around the car, so neighbouring panels really touch each other
-     * (front|right|rear|left, and left wraps to front). Identified from the clips:
-     *   1.mp4 front, 4.mp4 right, 2.mp4 rear (bumper + number plate visible), 3.mp4 left.
+     * Default panorama strip (left → right): left | front | right | rear.
+     * Video files (artificial-feed): 3.mp4 left, 1.mp4 front, 4.mp4 right, 2.mp4 rear.
      */
-    private static final String DEFAULT_PANELS = "1:front,4:right,2:rear,3:left";
+    private static final String DEFAULT_PANELS = "3:left,1:front,4:right,2:rear";
     private static final java.util.Set<String> ROLES =
             new java.util.HashSet<>(java.util.Arrays.asList("front", "rear", "left", "right"));
 
@@ -128,6 +128,7 @@ public class VideoStreamingServer {
 
         // WP5: steering / wheel + curb-zone signals. cameraNames MUST be in panel order.
         Wp5Service.attach(server, cameraNames, TARGET_WIDTH, TARGET_HEIGHT, OVERLAP_PX);
+        VisionService.attach(server);
 
         // Every /stitch (MJPEG) and /api/v1/signals (SSE) client holds a thread for as long as it
         // is connected. A fixed pool of 4 is used up by the viewer + the phone, and then even the
@@ -231,7 +232,7 @@ public class VideoStreamingServer {
               continue;                      // (was a 100 % CPU busy-loop when a clip could not be read)
             }
 
-            VisionFramePublisher.publish(cameraNames, ready);
+            VisionFrameTap.offer(cameraNames, ready);
 
             Mat panorama = featherStitch(ready);
             writeFrame(out, encodeJpeg(panorama));
