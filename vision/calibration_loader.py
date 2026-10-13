@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Literal, Optional, Tuple
+from typing import Dict, List, Literal, Optional, Tuple
 
 import numpy as np
 import yaml
+
+from calibration.schema import CalibrationStatus, CameraModelType, DistanceType
+from calibration.validator import validate_camera_yaml_raw
 
 # OpenCV camera (+x right, +y down, +z forward) → WP5 vehicle (+x fwd, +y left, +z up).
 # Columns: cam +X → vehicle −Y (right), +Y → −Z (down), +Z → +X (forward).
@@ -38,6 +41,15 @@ class CameraCalibration:
     calibration_type: str = "measured"
     coordinate_frame: str = "rear_axle"
     rotation_model: RotationModel = "ypr_intrinsic"
+    calibration_status: str = CalibrationStatus.UNVERIFIED.value
+    calibration_version: int = 1
+    camera_model_type: str = CameraModelType.RECTIFIED_PINHOLE.value
+    distortion: List[float] = field(default_factory=list)
+    distance_type: str = DistanceType.GROUND_PLANE_RANGE.value
+    ground_plane_enabled: bool = True
+    ground_plane_normal: np.ndarray = field(default_factory=lambda: np.array([0.0, 0.0, 1.0]))
+    ground_plane_offset_m: float = 0.0
+    profile_validation_ok: bool = False
 
 
 def _ypr_intrinsic_deg_to_r(yaw_deg: float, pitch_deg: float, roll_deg: float) -> np.ndarray:
@@ -87,26 +99,69 @@ def load_camera_yaml(path: Path, *, allow_synthetic: bool = False) -> CameraCali
         raw = yaml.safe_load(f)
     img = raw["image"]
     ext = raw.get("extrinsics", {})
-    t = np.array(ext.get("t_m", [0.0, 0.0, 0.0]), dtype=float)
+    t = np.array(ext.get("t_m", ext.get("translation_vehicle_m", [0.0, 0.0, 0.0])), dtype=float)
     r, rot_model = rotation_from_extrinsics(ext)
     cal_type = str(raw.get("calibration_type", "measured"))
     valid = bool(raw.get("valid", False))
+
+    pv = validate_camera_yaml_raw(raw, allow_synthetic=allow_synthetic)
+    status = pv.status.value
     if cal_type == "synthetic" and not allow_synthetic:
         valid = False
+        status = CalibrationStatus.UNVERIFIED.value
+    elif status == CalibrationStatus.VALIDATED.value and pv.ok:
+        valid = True
+    elif status == CalibrationStatus.SYNTHETIC.value and allow_synthetic and pv.ok:
+        valid = True
+    else:
+        valid = False
+
+    model = raw.get("camera_model") or {}
+    intr = model.get("intrinsics") or {}
+    fx = float(intr.get("fx", img.get("fx", 0)))
+    fy = float(intr.get("fy", img.get("fy", fx)))
+    cx = float(intr.get("cx", img.get("cx", img.get("width", 640) / 2)))
+    cy = float(intr.get("cy", img.get("cy", img.get("height", 360) / 2)))
+    model_type = str(model.get("type", CameraModelType.RECTIFIED_PINHOLE.value))
+    distortion = [float(x) for x in (model.get("distortion") or [])]
+
+    gp = raw.get("ground_plane") or {}
+    gp_enabled = bool(gp.get("enabled", True))
+    n = gp.get("normal_vehicle") or [0.0, 0.0, 1.0]
+    gp_normal = np.array(n, dtype=float)
+    if np.linalg.norm(gp_normal) < 1e-9:
+        gp_normal = np.array([0.0, 0.0, 1.0])
+    else:
+        gp_normal = gp_normal / np.linalg.norm(gp_normal)
+    gp_offset = float(gp.get("offset_m", 0.0))
+
+    cal_block = raw.get("calibration") or {}
+    version = int(cal_block.get("version", 1))
+    dist_type = str(raw.get("distance_type", DistanceType.GROUND_PLANE_RANGE.value))
+
     return CameraCalibration(
-        name=str(raw.get("camera_name", path.stem)),
+        name=str(raw.get("camera_name", raw.get("camera_id", path.stem))),
         valid=valid,
-        width=int(img.get("width", 640)),
-        height=int(img.get("height", 360)),
-        fx=float(img["fx"]),
-        fy=float(img["fy"]),
-        cx=float(img.get("cx", img.get("width", 640) / 2)),
-        cy=float(img.get("cy", img.get("height", 360) / 2)),
+        width=int(img.get("width", raw.get("image_width", 640))),
+        height=int(img.get("height", raw.get("image_height", 360))),
+        fx=fx,
+        fy=fy,
+        cx=cx,
+        cy=cy,
         t_m=t,
         r_cam_to_vehicle=r,
         calibration_type=cal_type,
         coordinate_frame=str(raw.get("coordinate_frame", "rear_axle")),
         rotation_model=rot_model,
+        calibration_status=status,
+        calibration_version=version,
+        camera_model_type=model_type,
+        distortion=distortion,
+        distance_type=dist_type,
+        ground_plane_enabled=gp_enabled,
+        ground_plane_normal=gp_normal,
+        ground_plane_offset_m=gp_offset,
+        profile_validation_ok=pv.ok,
     )
 
 

@@ -116,7 +116,13 @@ function visionOverlayLabel(d){
   const st=(d.overlayStatus||"NO_CURB").toUpperCase();
   let text=st.replace(/_/g," ");
   const n=(d.detections&&d.detections.length)||0;
-  if(st==="DETECTED"&&n>0&&!d.detections.some(x=>x.distanceValid))text="DISTANCE UNAVAILABLE";
+  if(st==="DETECTED"&&n>0){
+    const det=d.detections.find(x=>x.detectionValid)||d.detections[0];
+    const cs=(det&&det.calibrationStatus)||"";
+    if(cs==="SYNTHETIC")text="SYNTHETIC METRIC (dev)";
+    else if(cs==="UNVERIFIED"||!det||!det.distanceValid)text="DISTANCE UNAVAILABLE";
+    else if(cs==="VALIDATED"&&det.distanceValid)text="VALIDATED METRIC";
+  }
   const ok=st==="DETECTED",bad=st==="INFERENCE_ERROR"||st==="STALE";
   return {text:"overlay: "+text,cls:ok?"ok":bad?"bad":""};
 }

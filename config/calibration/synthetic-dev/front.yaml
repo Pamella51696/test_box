@@ -2,6 +2,11 @@ camera_name: front
 calibration_type: synthetic
 coordinate_frame: vehicle_center
 valid: true
+calibration:
+  status: SYNTHETIC
+  type: SYNTHETIC
+  version: 1
+distance_type: GROUND_PLANE_RANGE
 
 image:
   width: 640

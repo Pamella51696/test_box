@@ -21,8 +21,11 @@ class Detection:
     distance_uncertainty_m: float | None = None
     detection_valid: bool = False
     overlay_status: str = "NO_CURB"  # DETECTED | NO_CURB | STALE | INFERENCE_ERROR
-    calibration_status: str = "UNVERIFIED"  # VALID | UNVERIFIED | MISSING | SYNTHETIC
+    calibration_status: str = "UNVERIFIED"  # VALIDATED | UNVERIFIED | SYNTHETIC
     timestamp_ms: int = 0
+    distance_type: str = ""
+    quality: Dict[str, Any] = field(default_factory=dict)
+    metric_mode: str = "disabled"  # disabled | development | calibrated
 
     def to_dict(self) -> Dict[str, Any]:
         d: Dict[str, Any] = {
@@ -53,6 +56,12 @@ class Detection:
                 d["distanceUncertaintyM"] = round(self.distance_uncertainty_m, 3)
         else:
             d["distanceValid"] = False
+        if self.distance_type:
+            d["distanceType"] = self.distance_type
+        if self.quality:
+            d["quality"] = self.quality
+        if self.metric_mode and self.metric_mode != "disabled":
+            d["metricMode"] = self.metric_mode
         if self.bbox:
             d["bbox"] = self.bbox
         return d

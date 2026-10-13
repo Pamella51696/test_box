@@ -2,6 +2,7 @@
 """
 Vision sidecar: overlay (PR1) and optional metric curb ingest (PR2).
 PR4: frame adapter, contour refine, temporal filter, validity metadata, bounded frame store.
+PR5: calibration contract, metric quality gates, development vs calibrated modes.
 """
 from __future__ import annotations
 
@@ -13,16 +14,16 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import numpy as np
 import uvicorn
 import yaml
 from fastapi import FastAPI, File, Form, UploadFile
 
-from calibration_loader import CameraCalibration, load_all, resolve_calibration_directory
+from calibration.schema import CalibrationStatus
+from calibration_loader import load_all, resolve_calibration_directory
 from curb_detector import CurbDetector
-from curb_distance_estimator import DistanceResult, estimate_from_contour
 from detection_schema import Detection, envelope
-from distance_validator import validate as validate_distance
+from metrics.distance_consistency import DistanceConsistencyFilter
+from metrics.measurement import build_metric_measurement
 from frame_adapter import (
     CoordinateSpace,
     build_layout_context,
@@ -93,6 +94,10 @@ MIN_DIST_M = float(DIST_CFG.get("min_valid_distance_m", 0.05))
 MAX_DIST_M = float(DIST_CFG.get("max_valid_distance_m", 5.0))
 REQUIRE_VALID_CAL = bool(DIST_CFG.get("require_valid_calibration", True))
 ALLOW_SYNTHETIC_METRIC = ALLOW_SYNTHETIC and bool(DIST_CFG.get("allow_synthetic_calibration", False))
+METRIC_CFG = CFG.get("metric", {})
+REPORT_UNCERTAINTY = bool(METRIC_CFG.get("report_uncertainty", False))
+MAX_DIST_JUMP_M = float(METRIC_CFG.get("max_distance_jump_m", 0.75))
+METRIC_MODE = os.environ.get("VISION_METRIC_MODE", METRIC_CFG.get("mode", "development")).strip().lower()
 
 VAL_CFG = CFG.get("validation", {})
 MIN_DET_CONF = float(VAL_CFG.get("min_detection_confidence", 0.60))
@@ -110,6 +115,7 @@ frames = FrameStore(max_age_ms=MAX_AGE_MS)
 meta: Dict[str, Any] = {}
 meta_lock = threading.Lock()
 detector: CurbDetector | None = None
+dist_consistency = DistanceConsistencyFilter(max_jump_m=MAX_DIST_JUMP_M)
 temporal = TemporalCurbFilter(
     TemporalConfig(
         enabled=bool(TEMP_CFG.get("enabled", True)),
@@ -153,20 +159,16 @@ def refresh_meta() -> None:
 def calibration_status_for(camera: str) -> str:
     cal = CALIBRATIONS.get(camera)
     if cal is None:
-        return "MISSING"
-    if not cal.valid:
-        return "UNVERIFIED"
-    if cal.calibration_type == "synthetic":
-        return "SYNTHETIC"
-    return "VALID"
+        return CalibrationStatus.UNVERIFIED.value
+    return cal.calibration_status
 
 
-def metric_allowed(cal: Optional[CameraCalibration], cal_status: str) -> bool:
-    if cal is None or not cal.valid:
-        return not REQUIRE_VALID_CAL and False
-    if cal_status == "SYNTHETIC":
-        return ALLOW_SYNTHETIC_METRIC
-    return cal_status == "VALID" or not REQUIRE_VALID_CAL
+def effective_metric_mode() -> str:
+    if METRIC_MODE == "calibrated":
+        return "calibrated"
+    if METRIC_MODE == "disabled":
+        return "disabled"
+    return "development"
 
 
 def metric_for_detection(
@@ -177,28 +179,68 @@ def metric_for_detection(
     pano_contour: List[List[int]],
     detection_valid: bool,
     overlay_status: str,
-) -> Tuple[Optional[float], bool, Optional[float], Optional[Dict[str, Any]], str]:
+    timestamp_ms: int,
+) -> Tuple[Optional[float], bool, Optional[float], Optional[Dict[str, Any]], str, Dict[str, Any], str]:
     """Distance fields and optional ingest sensor; fail-closed when calibration invalid."""
     cal_status = calibration_status_for(camera)
+    mode = effective_metric_mode()
+    if not detection_valid or overlay_status != "DETECTED" or mode == "disabled":
+        return None, False, None, None, cal_status, {}, mode
     cal = CALIBRATIONS.get(camera)
-    if not detection_valid or overlay_status != "DETECTED":
-        return None, False, None, None, cal_status
-    if not metric_allowed(cal, cal_status):
-        return None, False, None, None, cal_status
-    if cal is None:
-        geom = DistanceResult(0.0, np.zeros(3), False, "no_calibration")
-    else:
-        geom = estimate_from_contour(cal, cam_contour, image_height, GROUND_Z)
-    v = validate_distance(confidence, geom, MIN_DET_CONF, MIN_DIST_M, MAX_DIST_M)
-    if not v.ok:
-        return None, False, None, None, cal_status
+    if cal is None or not cal.valid:
+        return None, False, None, None, cal_status, {}, mode
+
+    allow_syn = ALLOW_SYNTHETIC_METRIC and mode == "development"
+    if mode == "calibrated" and cal_status != CalibrationStatus.VALIDATED.value:
+        return None, False, None, None, cal_status, {}, mode
+
     pos = CAMERA_TO_POS.get(camera, "")
+    if not pos:
+        return None, False, None, None, cal_status, {}, mode
+
+    prev_d, last_ts = dist_consistency.last_state(camera)
+
+    m = build_metric_measurement(
+        cal,
+        camera,
+        pos,
+        f"{SENSOR_PREFIX}{pos}",
+        cam_contour,
+        image_height,
+        confidence,
+        timestamp_ms,
+        allow_synthetic=allow_syn,
+        min_conf=MIN_DET_CONF,
+        min_m=MIN_DIST_M,
+        max_m=MAX_DIST_M,
+        ground_z_m=GROUND_Z,
+        report_uncertainty=REPORT_UNCERTAINTY,
+        prev_distance_m=prev_d,
+        last_timestamp_ms=last_ts,
+    )
+    if m.distance_valid:
+        ok, reason = dist_consistency.check(camera, m.distance_m, timestamp_ms)
+        if not ok:
+            m.distance_valid = False
+            m.quality.temporal_ok = False
+            if reason:
+                m.quality.reasons.append(reason)
+
+    extras = m.to_detection_extras()
     sensor: Optional[Dict[str, Any]] = None
-    if pos:
+    if m.distance_valid:
         strip = panorama_contour_strip(pano_contour, MIN_PANO_STRIP)
         pano_x, pano_w = strip if strip else (None, None)
-        sensor = build_sensor(f"{SENSOR_PREFIX}{pos}", pos, v.distance_m, pano_x, pano_w)
-    return v.distance_m, True, v.uncertainty_m, sensor, cal_status
+        sensor = m.to_ingest_sensor(pano_x, pano_w)
+    return (
+        m.distance_m if m.distance_valid else None,
+        m.distance_valid,
+        m.uncertainty_m,
+        sensor,
+        m.calibration_status,
+        extras,
+        mode,
+    )
 
 
 def aggregate_overlay_status(camera_statuses: Dict[str, str]) -> str:
@@ -314,8 +356,11 @@ def inference_loop() -> None:
             dist_unc: Optional[float] = None
             sensor: Optional[Dict[str, Any]] = None
             cal_status = calibration_status_for(cam)
+            metric_extras: Dict[str, Any] = {}
+            metric_mode = effective_metric_mode()
+            dist_type = ""
             if DO_METRIC:
-                dist_m, dist_valid, dist_unc, sensor, cal_status = metric_for_detection(
+                dist_m, dist_valid, dist_unc, sensor, cal_status, metric_extras, metric_mode = metric_for_detection(
                     conf,
                     cam,
                     cam_contour,
@@ -323,7 +368,9 @@ def inference_loop() -> None:
                     out_contour,
                     True,
                     "DETECTED",
+                    int(pkt.timestamp_ms),
                 )
+                dist_type = str(metric_extras.get("distanceType", ""))
                 if sensor is not None:
                     ingest_sensors.append(sensor)
 
@@ -345,6 +392,9 @@ def inference_loop() -> None:
                     overlay_status="DETECTED",
                     calibration_status=cal_status,
                     timestamp_ms=int(pkt.timestamp_ms),
+                    distance_type=dist_type or metric_extras.get("distanceType", ""),
+                    quality=metric_extras.get("quality", {}),
+                    metric_mode=metric_mode,
                 )
             )
 
@@ -399,7 +449,7 @@ def startup() -> None:
         f"[vision] mode={MODE}  {HOST}:{PORT}  →  {MIDDLEWARE}  "
         f"overlay={DO_OVERLAY} metric={DO_METRIC} ingest={INGEST_ENABLED} "
         f"infer_hz={TARGET_HZ} temporal={temporal.cfg.enabled} "
-        f"cal_profile={CAL_PROFILE} allow_synthetic={ALLOW_SYNTHETIC} "
+        f"metric_mode={METRIC_MODE} cal_profile={CAL_PROFILE} allow_synthetic={ALLOW_SYNTHETIC} "
         f"calib_valid={cal_valid or 'none'} synthetic_files={synth or 'none'}"
     )
 

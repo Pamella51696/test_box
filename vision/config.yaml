@@ -69,6 +69,11 @@ vision:
     require_valid_calibration: true
     allow_synthetic_calibration: false
 
+  metric:
+    mode: development  # development | calibrated | disabled
+    report_uncertainty: false
+    max_distance_jump_m: 0.75
+
   validation:
     min_detection_confidence: 0.60
     reject_invalid_projection: true

@@ -86,6 +86,26 @@ class AccuracyReport:
         ok = sum(1 for s in self.samples if s.within_tolerance and s.valid)
         return ok / len(self.samples)
 
+    @property
+    def rmse_m(self) -> Optional[float]:
+        ev = self.evaluated
+        if not ev:
+            return None
+        return (sum((s.error_m or 0.0) ** 2 for s in ev) / len(ev)) ** 0.5
+
+    @property
+    def bias_m(self) -> Optional[float]:
+        ev = self.evaluated
+        if not ev:
+            return None
+        return sum(s.error_m or 0.0 for s in ev) / len(ev)
+
+    @property
+    def valid_estimate_rate(self) -> float:
+        if not self.samples:
+            return 0.0
+        return len(self.evaluated) / len(self.samples)
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "profile": self.profile,
@@ -93,8 +113,11 @@ class AccuracyReport:
             "summary": {
                 "count": len(self.samples),
                 "maeM": self.mae_m,
+                "rmseM": self.rmse_m,
+                "biasM": self.bias_m,
                 "maxAbsErrorM": self.max_abs_error_m,
                 "passRate": round(self.pass_rate, 4),
+                "validEstimateRate": round(self.valid_estimate_rate, 4),
             },
             "skippedInvalidCalibration": self.skipped_invalid_calibration,
             "results": [
