@@ -44,6 +44,8 @@ public final class CurbModel {
         double heightM = Double.NaN;
         long receivedMs;
         Zone zone = Zone.NONE;  // remembered for hysteresis
+        boolean panoOverride;
+        int panoX, panoW;
     }
 
     /** Result of one evaluation. */
@@ -95,6 +97,18 @@ public final class CurbModel {
             s.distanceM = d;
             s.heightM = Json.getNum(o, "heightM", Double.NaN);
             s.receivedMs = nowMs;
+            // Flat fields (nested "pano":{} breaks the simple {…} sensor splitter in ingestJson).
+            int ox = (int) Json.getNum(o, "panoX", -1);
+            int ow = (int) Json.getNum(o, "panoW", -1);
+            if (ox < 0) ox = panoField(o, "x", -1);
+            if (ow < 0) ow = panoField(o, "w", -1);
+            if (ox >= 0 && ow > 0) {
+                s.panoOverride = true;
+                s.panoX = ox;
+                s.panoW = ow;
+            } else {
+                s.panoOverride = false;
+            }
             ok++;
         }
         return ok;
@@ -142,7 +156,10 @@ public final class CurbModel {
             Object[] map = panoMap.get(s.pos);
             int camIdx = indexOf((String) map[0]);
             int x = 0, w = 0;
-            if (camIdx >= 0) {
+            if (s.panoOverride) {
+                x = s.panoX;
+                w = Math.min(s.panoW, panoW - x);
+            } else if (camIdx >= 0) {
                 x = StitchingCore.cameraX(camIdx, camW, overlap) + (int) Math.round(camW * (double) map[1]);
                 w = (int) Math.round(camW * ((double) map[2] - (double) map[1]));
                 if (x + w > panoW) w = panoW - x;
@@ -187,4 +204,14 @@ public final class CurbModel {
     }
 
     public synchronized boolean hasSensors() { return !sensors.isEmpty(); }
+
+    /** Reads integer field inside a nested "pano":{...} object on one sensor JSON blob. */
+    private static int panoField(String sensorJson, String key, int def) {
+        int i = sensorJson.indexOf("\"pano\"");
+        if (i < 0) return def;
+        int end = sensorJson.indexOf('}', i);
+        if (end < 0) return def;
+        String block = sensorJson.substring(i, end + 1);
+        return (int) Json.getNum(block, key, def);
+    }
 }

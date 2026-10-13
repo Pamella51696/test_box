@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 
+import com.middleware.panorama.vision.VisionFramePublisher;
 import com.middleware.panorama.wp5.Wp5Service;
 
 import org.opencv.calib3d.Calib3d;
@@ -120,7 +121,7 @@ public class VideoStreamingServer {
             return;
         }
 
-        server.createContext("/stitch", new StitchHandler(videos));
+        server.createContext("/stitch", new StitchHandler(videos, cameraNames));
         server.createContext("/play",   new PlayerPageHandler());
         server.createContext("/meta",   new CommonHandlers.MetaHandler(port, cameraNames,
                 TARGET_WIDTH, TARGET_HEIGHT, OVERLAP_PX));
@@ -166,7 +167,11 @@ public class VideoStreamingServer {
 
     private static class StitchHandler implements HttpHandler {
       private final Path[] videoFiles;
-      StitchHandler(Path[] f) { this.videoFiles = f; }
+      private final String[] cameraNames;
+      StitchHandler(Path[] f, String[] cameraNames) {
+          this.videoFiles = f;
+          this.cameraNames = cameraNames;
+      }
 
       @Override public void handle(HttpExchange ex) throws IOException {
         if (!"GET".equalsIgnoreCase(ex.getRequestMethod())) {
@@ -225,6 +230,8 @@ public class VideoStreamingServer {
               try { Thread.sleep(40); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
               continue;                      // (was a 100 % CPU busy-loop when a clip could not be read)
             }
+
+            VisionFramePublisher.publish(cameraNames, ready);
 
             Mat panorama = featherStitch(ready);
             writeFrame(out, encodeJpeg(panorama));

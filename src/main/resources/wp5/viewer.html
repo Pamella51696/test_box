@@ -69,7 +69,7 @@ pre{margin:6px 0 0;background:#0f131b;border:1px solid var(--line);border-radius
 const $=id=>document.getElementById(id);
 const POS=["FRONT_LEFT","FRONT_CENTER","FRONT_RIGHT","REAR_LEFT","REAR_CENTER","REAR_RIGHT","LEFT_FRONT","LEFT_REAR","RIGHT_FRONT","RIGHT_REAR"];   // all 4 sides
 const isCurb=z=>z.kind==="CURB";                                           // ZONES ONLY FOR CURB SENSORS (kind=CURB); OBSTACLE sensors are ignored
-const PANO_ZONES=false;                                                      // true = draw zone lines on the panorama again
+const PANO_ZONES=true;                                                       // curb / vision overlays on live panorama
 const ZC=["#FF3B30","#FFCC00","#34C759"];                                  // 3 zones: DANGER (near), WARNING (mid), SAFE (far)
 const zoneLines=()=>{const d=curb&&curb.thresholds?curb.thresholds.dangerM:.5,w=curb&&curb.thresholds?curb.thresholds.warningM:1;return [d,w,w+(w-d)];};
 const MAXR=2.6;                       // slider max = "clear"
