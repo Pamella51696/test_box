@@ -1,0 +1,30 @@
+vision:
+  enabled: true
+  mode: overlay_only
+
+  frame_source:
+    type: java_frame_tap
+    fallback: mjpeg
+    mjpeg_url: "http://127.0.0.1:9091/stitch"
+
+  middleware_url: "http://127.0.0.1:9091"
+
+  model:
+    backend: openvino
+    onnx_path: "models/curb_segmentation.onnx"
+    input_width: 896
+    input_height: 512
+
+  inference:
+    target_hz: 8
+    max_frame_age_ms: 500
+    confidence_threshold: 0.001
+
+  output:
+    coordinate_space: PANORAMA_PIXELS
+    width: 2320
+    height: 360
+
+  server:
+    host: "127.0.0.1"
+    port: 8765

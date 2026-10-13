@@ -16,7 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 
-import com.middleware.panorama.vision.VisionFramePublisher;
+import com.middleware.panorama.vision.VisionFrameTap;
+import com.middleware.panorama.vision.VisionService;
 import com.middleware.panorama.wp5.Wp5Service;
 
 import org.opencv.calib3d.Calib3d;
@@ -128,6 +129,7 @@ public class VideoStreamingServer {
 
         // WP5: steering / wheel + curb-zone signals. cameraNames MUST be in panel order.
         Wp5Service.attach(server, cameraNames, TARGET_WIDTH, TARGET_HEIGHT, OVERLAP_PX);
+        VisionService.attach(server);
 
         // Every /stitch (MJPEG) and /api/v1/signals (SSE) client holds a thread for as long as it
         // is connected. A fixed pool of 4 is used up by the viewer + the phone, and then even the
@@ -231,7 +233,7 @@ public class VideoStreamingServer {
               continue;                      // (was a 100 % CPU busy-loop when a clip could not be read)
             }
 
-            VisionFramePublisher.publish(cameraNames, ready);
+            VisionFrameTap.offer(cameraNames, ready);
 
             Mat panorama = featherStitch(ready);
             writeFrame(out, encodeJpeg(panorama));
