@@ -1,0 +1,31 @@
+{
+  "type": "curb",
+  "v": 1,
+  "seq": 12,
+  "ts": 1791187699169,
+  "panorama": { "width": 2320, "height": 360 },
+  "thresholds": { "dangerM": 0.5, "warningM": 1.0 },
+  "zones": [
+    {
+      "id": "LR",
+      "pos": "LEFT_REAR",
+      "kind": "CURB",
+      "source": "ULTRASONIC",
+      "distanceM": 0.73,
+      "heightM": 0.12,
+      "zone": "WARNING",
+      "level": 2,
+      "color": "#FFCC00",
+      "camera": "left",
+      "pano": { "x": 1120, "w": 218, "xNorm": 0.483, "wNorm": 0.094 }
+    }
+  ],
+  "summary": {
+    "worstZone": "WARNING",
+    "worstColor": "#FFCC00",
+    "nearestDistanceM": 0.73,
+    "nearestSensorId": "LR",
+    "leftWorst": "WARNING",
+    "rightWorst": "SAFE"
+  }
+}

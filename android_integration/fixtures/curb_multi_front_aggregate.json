@@ -1,0 +1,43 @@
+{
+  "type": "curb",
+  "v": 1,
+  "seq": 41,
+  "ts": 1791970001000,
+  "thresholds": { "dangerM": 0.5, "warningM": 1.0 },
+  "zones": [
+    {
+      "id": "FL",
+      "pos": "FRONT_LEFT",
+      "kind": "CURB",
+      "source": "ULTRASONIC",
+      "distanceM": 0.9,
+      "zone": "WARNING",
+      "level": 2,
+      "color": "#FFCC00",
+      "pano": { "xNorm": 0.05, "wNorm": 0.05 }
+    },
+    {
+      "id": "FC",
+      "pos": "FRONT_CENTER",
+      "kind": "CURB",
+      "source": "VISION",
+      "distanceM": 0.35,
+      "zone": "DANGER",
+      "level": 3,
+      "color": "#FF3B30",
+      "pano": { "xNorm": 0.12, "wNorm": 0.05 }
+    },
+    {
+      "id": "FR",
+      "pos": "FRONT_RIGHT",
+      "kind": "CURB",
+      "source": "ULTRASONIC",
+      "distanceM": 1.2,
+      "zone": "WARNING",
+      "level": 2,
+      "color": "#FFCC00",
+      "pano": { "xNorm": 0.2, "wNorm": 0.05 }
+    }
+  ],
+  "summary": { "worstZone": "DANGER" }
+}
