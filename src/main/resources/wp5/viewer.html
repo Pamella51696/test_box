@@ -17,6 +17,10 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 460px;gap:14px;padding:14p
 #pano{width:100%;display:block;min-height:120px}#ov{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
 #panoMsg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:var(--mut);background:#000a;line-height:1.4;text-align:center;padding:12px}
 .row{display:flex;gap:8px;align-items:center;margin:4px 0}.row label{width:120px;color:var(--mut);font-size:12px}
+.sideTest{border:1px solid var(--line);border-radius:8px;padding:8px;margin:6px 0;background:#0f131b}
+.sideTest h3{margin:0 0 6px;font-size:13px;font-weight:600}
+.sideTest .sub{font-size:11px;color:var(--mut);margin-bottom:6px}
+details.adv{margin-top:10px;font-size:12px;color:var(--mut)}
 .row input[type=range]{flex:1}.row .v{width:56px;text-align:right;font-variant-numeric:tabular-nums}
 select,button,input[type=text]{background:#0f131b;color:var(--tx);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font:inherit}
 button{cursor:pointer}button:hover{border-color:var(--mut)}
@@ -54,9 +58,15 @@ pre{margin:6px 0 0;background:#0f131b;border:1px solid var(--line);border-radius
   <div class="row"><label>Gear</label><select id="gear"><option>R</option><option>D</option><option>P</option><option>N</option></select>
    <label style="width:auto">Speed km/h</label><input type="text" id="spd" value="1.5" size="4"></div>
   <div class="row"><label>Auto sweep</label><button id="sweep">start / stop</button><span style="color:var(--mut);font-size:12px">&plusmn;450&deg; sine, 12 s</span></div>
-  <div class="row"><label>Curb on side</label><label><input type="checkbox" class="cs" data-g="LEFT_" checked> left</label> <label><input type="checkbox" class="cs" data-g="RIGHT_" checked> right</label> <label><input type="checkbox" class="cs" data-g="FRONT_" checked> front</label> <label><input type="checkbox" class="cs" data-g="REAR_" checked> rear</label><span style="color:var(--mut);font-size:12px"> zones only for sensors that see a CURB</span></div>
-  <h2 style="margin-top:12px">Distance sensors (right end = clear)</h2><div id="sens"></div>
+  <h2 style="margin-top:12px">Curb in the frame (TEST)</h2>
+  <p style="margin:0 0 8px;font-size:12px;color:var(--mut)">Uses <code>POST /api/v1/ingest/vision-test</code> with source <b>TEST_UI</b>. Does not replace NN vision. Server needs <code>-Dwp5.visionTest.enabled=true</code>.</p>
+  <div id="sideTests"></div>
+  <p style="font-size:11px;color:var(--mut);margin:8px 0 0">Danger &le; <span id="legD">0.5</span> m · Warning &le; <span id="legW">1.0</span> m · Safe beyond warning</p>
+  <details class="adv"><summary>Ultrasonic sensor simulation (regression)</summary>
+  <div class="row" style="margin-top:8px"><label>Curb kind on side</label><label><input type="checkbox" class="cs" data-g="LEFT_" checked> left</label> <label><input type="checkbox" class="cs" data-g="RIGHT_" checked> right</label> <label><input type="checkbox" class="cs" data-g="FRONT_" checked> front</label> <label><input type="checkbox" class="cs" data-g="REAR_" checked> rear</label></div>
+  <div id="sens"></div>
   <div class="row"><label>Presets</label><button data-p="clear">all clear</button><button data-p="rear">rear danger</button><button data-p="curb">curb left-rear</button><button data-p="mix">mixed</button></div>
+  </details>
   <div class="row"><label>Ingest API key</label><input type="text" id="key" placeholder="only if -Dwp5.ingestToken set" style="flex:1"></div>
  </div>
  <div class="card" style="margin-top:14px"><h2>What an Android dev should check</h2>
@@ -107,7 +117,8 @@ function connect(){
   });
   es.addEventListener("curb",e=>{curb=JSON.parse(e.data);cnt.c++;lastCurbAt=Date.now();
     $("tD").textContent=curb.thresholds.dangerM;$("tW").textContent=curb.thresholds.warningM;
-    $("rawCurb").textContent="CURB zones only (obstacle sensors ignored)\n"+curb.zones.filter(isCurb).map(z=>z.pos+" "+z.zone+" "+(z.distanceM===null?"-":z.distanceM+"m")+" x="+z.pano.x+" w="+z.pano.w).join("\n");
+    $("legD").textContent=curb.thresholds.dangerM;$("legW").textContent=curb.thresholds.warningM;
+    $("rawCurb").textContent="CURB zones (kind=CURB)\n"+curb.zones.filter(isCurb).map(z=>z.pos+" "+z.zone+" "+(z.distanceM===null?"-":z.distanceM+"m")+" src="+(z.source||"?")+" x="+z.pano.x+" w="+z.pano.w).join("\n");
     drawCurb();});
 }
 connect();
@@ -236,7 +247,40 @@ function drawSW(){sx.clearRect(0,0,150,150);sx.save();sx.translate(75,75);sx.rot
   if(steer)$("swTxt").innerHTML="wheel "+cur.swa.toFixed(0)+"&deg;<br>FL "+cur.l.toFixed(1)+"&deg; &nbsp;FR "+cur.r.toFixed(1)+"&deg;<br>"+steer.direction+(steer.turnRadiusM?" R="+steer.turnRadiusM.toFixed(1)+" m":"")+"<br>gear "+steer.gear;}
 (function frame(){cur.swa+=(tgt.swa-cur.swa)*.35;cur.l+=(tgt.l-cur.l)*.35;cur.r+=(tgt.r-cur.r)*.35;drawTop();drawSW();requestAnimationFrame(frame);})();
 
-/* ---------- fake vehicle ---------- */
+/* ---------- fake vehicle + curb-in-frame TEST ---------- */
+const TEST_SIDES=["left","right","front","rear"];
+const testState={left:{on:false,d:1.0},right:{on:false,d:1.0},front:{on:false,d:1.0},rear:{on:false,d:1.0}};
+const stBox=$("sideTests");
+TEST_SIDES.forEach(side=>{
+  const d=document.createElement("div");d.className="sideTest";
+  d.innerHTML='<h3>'+side.charAt(0).toUpperCase()+side.slice(1)+'</h3><div class="sub" id="st_'+side+'">No test curb</div>'
+    +'<label><input type="checkbox" class="tst" data-side="'+side+'"> simulate curb</label>'
+    +'<div class="row" style="margin-top:6px"><label style="width:70px">0.1 m</label>'
+    +'<input type="range" class="tsl" data-side="'+side+'" min="0.1" max="2.4" step="0.01" value="1.0" style="flex:1">'
+    +'<span class="v" id="tv_'+side+'">1.00 m</span></div>';
+  stBox.appendChild(d);
+});
+function refreshTestLabels(){
+  TEST_SIDES.forEach(side=>{
+    const t=testState[side];
+    $("st_"+side).textContent=t.on?(t.d.toFixed(2)+" m (TEST_UI)"):"No test curb";
+    $("tv_"+side).textContent=t.d.toFixed(2)+" m";
+  });
+}
+document.querySelectorAll(".tst").forEach(cb=>{cb.onchange=()=>{const s=cb.dataset.side;testState[s].on=cb.checked;refreshTestLabels();queueTestSend();};});
+document.querySelectorAll(".tsl").forEach(sl=>{sl.oninput=()=>{const s=sl.dataset.side;testState[s].d=+sl.value;refreshTestLabels();queueTestSend();};});
+let testSendTimer=null;
+function buildVisionTestBody(){
+  return {sides:TEST_SIDES.map(side=>({side,detected:testState[side].on,distanceM:testState[side].on?testState[side].d:null,confidence:testState[side].on?1.0:0}))};
+}
+function queueTestSend(){if(testSendTimer)clearTimeout(testSendTimer);testSendTimer=setTimeout(sendVisionTest,180);}
+function sendVisionTest(){
+  if(!sendCb.checked)return;
+  const any=testState.left.on||testState.right.on||testState.front.on||testState.rear.on;
+  fetch("/api/v1/ingest/vision-test",{method:"POST",headers:hdr(),body:JSON.stringify(buildVisionTestBody())})
+    .then(r=>{if(!any&&r.status===403)$("sendInfo").textContent="vision-test off (enable -Dwp5.visionTest.enabled=true)";})
+    .catch(()=>{});
+}
 const sens={};const sBox=$("sens");
 POS.forEach(p=>{const r=document.createElement("div");r.className="row";
   r.innerHTML='<label>'+p+'</label><input type="range" min="0.1" max="'+MAXR+'" step="0.01" value="'+MAXR+'"><span class="v">clear</span>';
@@ -256,7 +300,8 @@ setInterval(()=>{
   const body2=JSON.stringify({sensors:POS.map(p=>({id:p,pos:p,distanceM:+sens[p].value>=MAXR-1e-9?-1:+sens[p].value,
     kind:curbSide(p)?"CURB":"OBSTACLE",source:"ULTRASONIC"}))});
   Promise.all([fetch("/api/v1/ingest/steering",{method:"POST",headers:hdr(),body:body1}),fetch("/api/v1/ingest/range",{method:"POST",headers:hdr(),body:body2})])
-   .then(rs=>{okCnt++;errMsg=rs.map(r=>r.status).join("/");$("sendInfo").textContent="sending, HTTP "+errMsg;})
+   .then(rs=>{okCnt++;errMsg=rs.map(r=>r.status).join("/");$("sendInfo").textContent="sending steer/range HTTP "+errMsg;sendVisionTest();})
    .catch(e=>{$("sendInfo").textContent="send failed: "+e;});
-},100);
+},250);
+refreshTestLabels();
 </script></body></html>

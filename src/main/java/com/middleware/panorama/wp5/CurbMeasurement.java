@@ -17,11 +17,18 @@ public record CurbMeasurement(
         int panoW,
         boolean panoOverride
 ) {
+    public static final String SOURCE_VISION = "VISION";
+    public static final String SOURCE_ULTRASONIC = "ULTRASONIC";
+    public static final String SOURCE_TEST_UI = "TEST_UI";
+
     public static final String CHANNEL_VISION = "VISION";
     public static final String CHANNEL_ULTRASONIC = "ULTRASONIC";
+    public static final String CHANNEL_TEST_UI = "TEST_UI";
 
     public String channel() {
-        return CurbMeasurement.CHANNEL_VISION.equalsIgnoreCase(source) ? CHANNEL_VISION : CHANNEL_ULTRASONIC;
+        if (SOURCE_TEST_UI.equalsIgnoreCase(source)) return CHANNEL_TEST_UI;
+        if (SOURCE_VISION.equalsIgnoreCase(source)) return CHANNEL_VISION;
+        return CHANNEL_ULTRASONIC;
     }
 
     public boolean isClear(double maxRangeM) {

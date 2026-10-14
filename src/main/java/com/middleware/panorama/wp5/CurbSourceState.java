@@ -25,4 +25,16 @@ final class CurbSourceState {
     synchronized void clear() {
         byPos.clear();
     }
+
+    synchronized void remove(String pos, String channel) {
+        Map<String, CurbMeasurement> m = byPos.get(pos);
+        if (m != null) {
+            m.remove(channel);
+            if (m.isEmpty()) byPos.remove(pos);
+        }
+    }
+
+    synchronized CurbMeasurement getTestUi(String pos) {
+        return get(pos, CurbMeasurement.CHANNEL_TEST_UI);
+    }
 }

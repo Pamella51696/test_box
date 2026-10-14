@@ -23,6 +23,7 @@ cd "$ROOT"
 echo "Port: $PORT  vision tap: $VISION_URL  videos: $VIDEO_DIR"
 exec java --enable-native-access=ALL-UNNAMED \
   "-Dwp5.vision.url=${VISION_URL}" \
+  -Dwp5.visionTest.enabled=true \
   -Dwp5.vision.maxFps=8 \
   -Dwp5.vision.cameras=left,front,right,rear \
   -Dpanels=3:left,1:front,4:right,2:rear \

@@ -26,10 +26,16 @@ final class CurbFusionEngine {
             String pos,
             CurbMeasurement vision,
             CurbMeasurement ultrasonic,
+            CurbMeasurement testUi,
             FusionConfig fusion,
             Wp5Config cfg,
+            VisionTestConfig testCfg,
             long nowMs
     ) {
+        if (testCfg.enabled && CurbHealthMonitor.isTestUiUsable(testUi, testCfg, nowMs)) {
+            return new FusionPick(testUi, false, "test_ui");
+        }
+
         boolean vOk = fusion.visionEnabled && CurbHealthMonitor.isUsable(vision, cfg, fusion, nowMs);
         boolean uOk = fusion.ultrasonicEnabled && CurbHealthMonitor.isUsable(ultrasonic, cfg, fusion, nowMs);
 

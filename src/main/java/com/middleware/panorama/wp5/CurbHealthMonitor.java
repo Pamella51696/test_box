@@ -13,9 +13,18 @@ final class CurbHealthMonitor {
         if (m == null || !isFresh(m, nowMs, fusion.staleTimeoutMs > 0 ? fusion.staleTimeoutMs : cfg.staleMs)) {
             return false;
         }
+        if (!"CURB".equalsIgnoreCase(m.kind())) return false;
+        if (CurbMeasurement.SOURCE_TEST_UI.equalsIgnoreCase(m.source())) {
+            return m.distanceValid() && m.distanceM() > 0;
+        }
         if (!m.distanceValid()) return false;
         if (m.syntheticCalibration() && !fusion.allowSynthetic) return false;
-        if (!"CURB".equalsIgnoreCase(m.kind())) return false;
         return true;
+    }
+
+    static boolean isTestUiUsable(CurbMeasurement m, VisionTestConfig testCfg, long nowMs) {
+        if (m == null || !CurbMeasurement.SOURCE_TEST_UI.equalsIgnoreCase(m.source())) return false;
+        if (!isFresh(m, nowMs, testCfg.ttlMs)) return false;
+        return m.distanceValid() && m.distanceM() > 0 && m.distanceM() < 1e6;
     }
 }
