@@ -1,0 +1,21 @@
+{
+  "type": "curb",
+  "v": 1,
+  "seq": 50,
+  "ts": 1791970003000,
+  "thresholds": { "dangerM": 0.5, "warningM": 1.0 },
+  "zones": [
+    {
+      "id": "RC",
+      "pos": "REAR_CENTER",
+      "kind": "CURB",
+      "source": "ULTRASONIC",
+      "distanceM": null,
+      "zone": "NONE",
+      "level": 0,
+      "color": "#9E9E9E",
+      "pano": { "xNorm": 0.5, "wNorm": 0.08 }
+    }
+  ],
+  "summary": { "worstZone": "NONE" }
+}

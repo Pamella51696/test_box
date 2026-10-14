@@ -1,0 +1,60 @@
+{
+  "type": "curb",
+  "v": 1,
+  "seq": 40,
+  "ts": 1791970000000,
+  "thresholds": { "dangerM": 0.5, "warningM": 1.0 },
+  "zones": [
+    {
+      "id": "FC",
+      "pos": "FRONT_CENTER",
+      "kind": "CURB",
+      "source": "ULTRASONIC",
+      "distanceM": 0.42,
+      "zone": "DANGER",
+      "level": 3,
+      "color": "#FF3B30",
+      "pano": { "xNorm": 0.1, "wNorm": 0.08 }
+    },
+    {
+      "id": "RC",
+      "pos": "REAR_CENTER",
+      "kind": "CURB",
+      "source": "ULTRASONIC",
+      "distanceM": 1.35,
+      "zone": "SAFE",
+      "level": 1,
+      "color": "#34C759",
+      "pano": { "xNorm": 0.5, "wNorm": 0.08 }
+    },
+    {
+      "id": "LF",
+      "pos": "LEFT_FRONT",
+      "kind": "CURB",
+      "source": "VISION",
+      "distanceM": 0.72,
+      "zone": "WARNING",
+      "level": 2,
+      "color": "#FFCC00",
+      "pano": { "xNorm": 0.7, "wNorm": 0.06 }
+    },
+    {
+      "id": "RR",
+      "pos": "RIGHT_REAR",
+      "kind": "CURB",
+      "source": "ULTRASONIC",
+      "distanceM": 1.1,
+      "zone": "WARNING",
+      "level": 2,
+      "color": "#FFCC00",
+      "pano": { "xNorm": 0.9, "wNorm": 0.06 }
+    }
+  ],
+  "summary": {
+    "worstZone": "DANGER",
+    "nearestDistanceM": 0.42,
+    "nearestSensorId": "FC",
+    "leftWorst": "WARNING",
+    "rightWorst": "WARNING"
+  }
+}

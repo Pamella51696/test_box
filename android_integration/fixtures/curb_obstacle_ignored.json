@@ -1,0 +1,32 @@
+{
+  "type": "curb",
+  "v": 1,
+  "seq": 51,
+  "ts": 1791970004000,
+  "thresholds": { "dangerM": 0.5, "warningM": 1.0 },
+  "zones": [
+    {
+      "id": "O",
+      "pos": "REAR_CENTER",
+      "kind": "OBSTACLE",
+      "source": "ULTRASONIC",
+      "distanceM": 0.2,
+      "zone": "DANGER",
+      "level": 3,
+      "color": "#FF3B30",
+      "pano": { "xNorm": 0.5, "wNorm": 0.08 }
+    },
+    {
+      "id": "C",
+      "pos": "LEFT_REAR",
+      "kind": "CURB",
+      "source": "ULTRASONIC",
+      "distanceM": 0.8,
+      "zone": "WARNING",
+      "level": 2,
+      "color": "#FFCC00",
+      "pano": { "xNorm": 0.48, "wNorm": 0.09 }
+    }
+  ],
+  "summary": { "worstZone": "WARNING" }
+}

@@ -1,0 +1,21 @@
+{
+  "type": "curb",
+  "v": 1,
+  "seq": 99,
+  "ts": 1791970002000,
+  "thresholds": { "dangerM": 0.5, "warningM": 1.0 },
+  "zones": [
+    {
+      "id": "TEST_L",
+      "pos": "LEFT_REAR",
+      "kind": "CURB",
+      "source": "TEST_UI",
+      "distanceM": 0.7,
+      "zone": "WARNING",
+      "level": 2,
+      "color": "#FFCC00",
+      "pano": { "xNorm": 0.48, "wNorm": 0.09 }
+    }
+  ],
+  "summary": { "worstZone": "WARNING", "leftWorst": "WARNING" }
+}
