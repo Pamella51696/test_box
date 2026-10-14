@@ -61,10 +61,21 @@ public final class Wp5Service {
         server.createContext("/api/v1/curb", s.new LatestHandler("curb"));
         server.createContext("/api/v1/ingest/steering", s.new IngestHandler(true));
         server.createContext("/api/v1/ingest/range", s.new IngestHandler(false));
+        server.createContext("/api/v1/ingest/vision-test", s.new VisionTestIngestHandler());
+        server.createContext("/api/v1/ingest/vision", s.new VisionTestIngestHandler());
         server.createContext("/api/v1/profile", s.new ProfileHandler());
         server.createContext("/wp5", s.new DebugPageHandler());
         server.createContext("/wp5/viewer", s.new ViewerPageHandler());
         System.out.println("[WP5] profile: " + cfg.profile.name + "  (from " + cfg.profileSource + ")");
+        FusionConfig fusion = FusionConfig.load();
+        if (fusion.enabled) {
+            System.out.println("[WP5] curb fusion ON  mode=" + fusion.mode + "  conflictThresholdM=" + fusion.conflictThresholdM);
+        }
+        VisionTestConfig vtest = VisionTestConfig.load();
+        if (vtest.enabled) {
+            System.out.println("[WP5] vision test ingest ON  ttlMs=" + vtest.ttlMs
+                    + "  →  POST /api/v1/ingest/vision-test");
+        }
         s.ticker.scheduleAtFixedRate(s::tick, 100, 100, TimeUnit.MILLISECONDS);
         if (Boolean.getBoolean("wp5.simulate")) {
             new Wp5Simulator(s).start();
@@ -92,6 +103,10 @@ public final class Wp5Service {
 
     public void onRangeJson(String body) {
         curbModel.ingestJson(body, System.currentTimeMillis());
+    }
+
+    public void onVisionTestJson(String body) {
+        curbModel.ingestVisionTest(body, System.currentTimeMillis());
     }
 
     // ------------------------------------------------------------------ tick (10 Hz)
@@ -179,6 +194,31 @@ public final class Wp5Service {
             String j = hub.latest(topic);
             if (j == null) { ex.sendResponseHeaders(204, -1); return; }
             send(ex, 200, "application/json; charset=UTF-8", j);
+        }
+    }
+
+    private final class VisionTestIngestHandler implements HttpHandler {
+        @Override public void handle(HttpExchange ex) throws IOException {
+            if (!"POST".equalsIgnoreCase(ex.getRequestMethod())) { ex.sendResponseHeaders(405, -1); return; }
+            VisionTestConfig vtest = VisionTestConfig.load();
+            if (!vtest.enabled) {
+                send(ex, 403, "application/json", "{\"error\":\"vision test ingest disabled\"}");
+                return;
+            }
+            if (!cfg.ingestToken.isEmpty()
+                    && !cfg.ingestToken.equals(ex.getRequestHeaders().getFirst("X-Api-Key"))) {
+                ex.sendResponseHeaders(401, -1); return;
+            }
+            byte[] raw = ex.getRequestBody().readNBytes(16 * 1024);
+            String body = new String(raw, StandardCharsets.UTF_8);
+            try {
+                int n = curbModel.ingestVisionTest(body, System.currentTimeMillis());
+                send(ex, n > 0 ? 200 : 400, "application/json", "{\"accepted\":" + n + "}");
+            } catch (IllegalArgumentException | IllegalStateException e) {
+                send(ex, 400, "application/json", "{\"error\":\"" + e.getMessage().replace("\"", "'") + "\"}");
+            } catch (RuntimeException e) {
+                send(ex, 400, "application/json", "{\"error\":\"bad request\"}");
+            }
         }
     }
 

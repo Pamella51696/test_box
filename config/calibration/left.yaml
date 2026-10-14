@@ -1,0 +1,12 @@
+camera_name: left
+image:
+  width: 640
+  height: 360
+  fx: 320.0
+  fy: 320.0
+  cx: 320.0
+  cy: 180.0
+extrinsics:
+  t_m: [0.0, 0.0, 0.0]
+  r_ypr_deg: [0.0, 0.0, 0.0]
+valid: false

@@ -1,0 +1,7 @@
+{
+  "description": "CI thresholds for artificial-measured profile only (not field performance).",
+  "profile": "artificial-measured",
+  "minPassRate": 1.0,
+  "maxMaeM": 0.02,
+  "notes": "Derived from validate_curb_accuracy on ground_truth.artificial-measured.jsonl with headroom above ~0.005 m MAE."
+}

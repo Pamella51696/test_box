@@ -1,0 +1,41 @@
+camera_id: rear
+camera_name: rear
+calibration_type: measured
+coordinate_frame: vehicle_center
+valid: true
+distance_type: GROUND_PLANE_RANGE
+
+calibration:
+  status: SYNTHETIC
+  type: ARTIFICIAL_MEASURED
+  version: 1
+
+image_width: 640
+image_height: 360
+image:
+  width: 640
+  height: 360
+  fx: 320.0
+  fy: 320.0
+  cx: 320.0
+  cy: 180.0
+
+camera_model:
+  type: rectified_pinhole
+  intrinsics:
+    fx: 320.0
+    fy: 320.0
+    cx: 320.0
+    cy: 180.0
+  distortion: []
+
+extrinsics:
+  rotation_model: vehicle_mount_yaw
+  translation_vehicle_m: [-1.8, 0.0, 0.8]
+  t_m: [-1.8, 0.0, 0.8]
+  r_ypr_deg: [180.0, 0.0, 0.0]
+
+ground_plane:
+  enabled: true
+  normal_vehicle: [0.0, 0.0, 1.0]
+  offset_m: 0.0

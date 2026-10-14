@@ -1,0 +1,1 @@
+{"id": "syn-dev-front", "camera": "front", "contour_camera_pixels": [[320, 200], [340, 198]], "distance_m": 14.6, "tolerance_m": 0.25, "notes": "synthetic-dev ray at fixed pixel; dev selftest only"}

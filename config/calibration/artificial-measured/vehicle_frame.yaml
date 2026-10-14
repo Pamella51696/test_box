@@ -1,0 +1,15 @@
+# Artificial profile — same conventions as synthetic-dev (vehicle_center, ground z=0).
+frame: vehicle_center
+axes:
+  forward: +x
+  left: +y
+  up: +z
+ground_plane_z_m: 0.0
+distance_reference: GROUND_PLANE_RANGE_from_frame_origin
+calibration:
+  status: SYNTHETIC
+  type: ARTIFICIAL_MEASURED
+  version: 1
+notes: >
+  OEM-like layout generated for software testing. Do not use for homologation or
+  field distance claims. Replace with real survey before VALIDATED status.
